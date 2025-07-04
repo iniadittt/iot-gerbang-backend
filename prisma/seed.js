@@ -11,6 +11,8 @@ const bcrypt = require("bcrypt");
 			data: {
 				username: user.username,
 				password: hashPassword,
+				rfid: user.rfid,
+				fullname: user.fullname,
 			},
 		});
 	}
