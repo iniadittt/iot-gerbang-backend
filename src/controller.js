@@ -138,8 +138,9 @@ const controller = {
 				return response.status(400).json({ success: false, message: "RFID salah", data: null });
 			}
 			const now = new Date();
-			const hour = now.getHours();
-			const isSiang = hour >= 6 && hour < 18;
+			const utcHour = now.getUTCHours();
+			const hourUTC7 = (utcHour + 7) % 24;
+			const isSiang = hourUTC7 >= 6 && hourUTC7 < 18;
 
 			if (!isSiang) {
 				return response.status(200).json({ success: false, message: "Waktu sudah malam", data: null });

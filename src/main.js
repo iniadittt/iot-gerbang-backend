@@ -29,7 +29,7 @@ app.post("/login", async (request, response) => await controller.login(request, 
 app.get("/me", async (request, response) => await controller.me(request, response, io));
 app.get("/sensor", async (request, response) => await controller.get(request, response, io));
 app.post("/sensor", async (request, response) => await controller.add(request, response, io));
-app.get("/pdf", async (request, response) => await controller.pdf(request, response, io));
+app.post("/pdf", async (request, response) => await controller.pdf(request, response, io));
 
 server.listen(PORT, async () => {
 	console.log(`Server running on: http://localhost:${PORT}`);
