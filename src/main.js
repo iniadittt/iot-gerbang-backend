@@ -26,6 +26,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/", async (_, response) => response.status(200).json({ success: true, message: "Hello", data: null }));
 app.post("/login", async (request, response) => await controller.login(request, response, io));
+app.get("/users", async (request, response) => await controller.users(request, response, io));
+app.post("/register", async (request, response) => await controller.register(request, response, io));
+app.post("/delete", async (request, response) => await controller.delete(request, response, io));
 app.get("/me", async (request, response) => await controller.me(request, response, io));
 app.get("/sensor", async (request, response) => await controller.get(request, response, io));
 app.post("/sensor", async (request, response) => await controller.add(request, response, io));

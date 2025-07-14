@@ -370,6 +370,154 @@ const controller = {
 			});
 		}
 	},
+
+	users: async (request, response, io) => {
+		try {
+			const token = request.headers.authorization?.split(" ")[1];
+			if (!token) {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const decoded = jwt.verify(token, config.JWT_SECRET);
+			const user = await prisma.user.findFirst({
+				where: { id: decoded.id, username: decoded.username },
+				select: { id: true, username: true, fullname: true },
+			});
+			if (!user || user.username !== "admin") {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const users = await prisma.user.findMany({
+				where: { username: { not: "admin" } },
+				orderBy: { id: "asc" },
+			});
+			const usersMap = users.map((item) => ({
+				id: item.id,
+				username: item.username,
+				fullname: item.fullname,
+				rfid: item.rfid,
+			}));
+			return response.status(200).json({
+				success: true,
+				message: "Berhasil mengambil data user",
+				data: {
+					users: usersMap,
+				},
+			});
+		} catch (error) {
+			return response.status(500).json({
+				success: false,
+				message: error.message,
+				data: null,
+			});
+		}
+	},
+
+	register: async (request, response, io) => {
+		try {
+			const token = request.headers.authorization?.split(" ")[1];
+			if (!token) {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const decoded = jwt.verify(token, config.JWT_SECRET);
+			const user = await prisma.user.findFirst({
+				where: { id: decoded.id, username: decoded.username },
+				select: { id: true, username: true, fullname: true },
+			});
+			if (!user || user.username !== "admin") {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const body = schema.register.safeParse(request.body);
+			if (!body.success) {
+				return response.status(400).json({ success: false, message: body.error.errors[0].message, data: null });
+			}
+			const { username, password, rfid, fullname } = body.data;
+			const userExist = await prisma.user.findFirst({
+				where: {
+					OR: [{ username }, { rfid }, { fullname }],
+				},
+				select: { id: true },
+			});
+			if (userExist) {
+				return response.status(400).json({ success: false, message: "User sudah ada", data: null });
+			}
+			const hashPassword = await bcrypt.hash(password, 10);
+			const createdUser = await prisma.user.create({
+				data: { username, fullname, rfid, password: hashPassword },
+			});
+			if (!createdUser) {
+				return response.status(400).json({ success: false, message: "Gagal membuat user", data: null });
+			}
+			return response.status(200).json({
+				success: true,
+				message: "Berhasil membuat user",
+				data: {
+					id: createdUser.id,
+					username: createdUser.username,
+					fullname: createdUser.fullname,
+					rfid: createdUser.rfid,
+				},
+			});
+		} catch (error) {
+			return response.status(500).json({
+				success: false,
+				message: error.message,
+				data: null,
+			});
+		}
+	},
+
+	delete: async (request, response, io) => {
+		try {
+			const token = request.headers.authorization?.split(" ")[1];
+			if (!token) {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const decoded = jwt.verify(token, config.JWT_SECRET);
+			const user = await prisma.user.findFirst({
+				where: { id: decoded.id, username: decoded.username },
+				select: { id: true, username: true, fullname: true },
+			});
+			if (!user || user.username !== "admin") {
+				return response.status(401).json({ success: false, message: "Token tidak valid", data: null });
+			}
+			const body = schema.delete.safeParse(request.body);
+			if (!body.success) {
+				return response.status(400).json({ success: false, message: body.error.errors[0].message, data: null });
+			}
+			const { id } = body.data;
+			const userExist = await prisma.user.findFirst({
+				where: { id },
+				select: { id: true },
+			});
+			if (!userExist) {
+				return response.status(400).json({ success: false, message: "User tidak ada", data: null });
+			}
+			const TRANSACTION = await prisma.$transaction(async (database) => {
+				const deletedSensors = await database.sensor.deleteMany({
+					where: { userId: userExist.id },
+				});
+				const deletedUser = await database.user.delete({
+					where: { id: userExist.id },
+				});
+				return { deletedSensors, deletedUser };
+			});
+			if (!TRANSACTION.deletedUser) {
+				return response.status(400).json({ success: false, message: "Gagal menghapus user", data: null });
+			}
+			return response.status(200).json({
+				success: true,
+				message: "Berhasil menghapus user",
+				data: {
+					id: TRANSACTION.deletedUser.id,
+				},
+			});
+		} catch (error) {
+			return response.status(500).json({
+				success: false,
+				message: error.message,
+				data: null,
+			});
+		}
+	},
 };
 
 module.exports = controller;
